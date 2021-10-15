@@ -50,8 +50,12 @@ export const MyFormInputs: React.FC<{}> = () => {
       <input type='text' {...field(form.name)}>
       <input type='text' {...field(form.someValue)}>
 
+      {form.name.length > 3 && (
+        <span>Hi {form.name}!</span>
+      )}
+
       <div onClick={() => update(form => { form.numbers.push(Math.random() * 100) })}>
-        Random numbers: ${
+        Random numbers: {
           form.numbers.map((number, index) =>
             <span key={index}>{Math.floor(number)}</span>
           )
@@ -73,9 +77,9 @@ export interface MyForm {
 
 ## Dependency tracking
 As seen in the example, we do not set up explicit dependencies on fields, as you would do with other libraries. Instead,
-field dependencies are tracked automatically during rendering. Any fields that you use at render time will be tracked
-and when the given field changes, the component is re-rendered automatically. This applies to arrays and nested objects
-as well.
+field dependencies are tracked automatically during rendering. Any fields that you use and access at render time will be
+tracked and when the given field changes, the component is re-rendered automatically. This applies to arrays and nested
+objects as well.
 
 ## Form updates
 Updates to the form can be done by calling the `update()` function that is returned from the `useForm()` hook. Updates
