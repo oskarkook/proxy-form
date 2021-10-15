@@ -17,15 +17,6 @@ rendered fields to avoid re-rendering large React components](#controlled-fields
 - `useFormContext()` hook, which provides raw access to the form context. This can be useful in some edge cases
 
 ### Example use
-`types.ts`
-```ts
-export interface MyForm {
-  name: string;
-  someValue: string;
-  numbers: number[];
-}
-```
-
 `MyFormWrapper.tsx`
 ```tsx
 import React from 'react';
@@ -67,6 +58,15 @@ export const MyFormInputs: React.FC<{}> = () => {
 }
 ```
 
+`types.ts`
+```ts
+export interface MyForm {
+  name: string;
+  someValue: string;
+  numbers: number[];
+}
+```
+
 ## Dependency tracking
 As seen in the example, we do not set up explicit dependencies on fields, as you would do with other libraries. Instead,
 field dependencies are tracked automatically during rendering. Any fields that you use at render time will be tracked
@@ -83,7 +83,7 @@ by Immer and synthesized into a new object:
 update(form => {
   form.name = 'new name';
   form.someValue = 'new value';
-  form.specialField.push(2);
+  form.numbers.push(2);
 });
 ```
 
