@@ -44,7 +44,7 @@ import { useForm } from 'proxy-form';
 import { MyForm } from './types';
 
 export const MyFormInputs: React.FC<{}> = () => {
-  const { form, field } = useForm<MyForm>();
+  const { form, field, update } = useForm<MyForm>();
   return (
     <div>
       <input type='text' {...field(form.name)}>
