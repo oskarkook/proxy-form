@@ -263,8 +263,8 @@ React's rendering engine works and can't be avoided.
 
 ## FAQ
 ### Why?
-The other popular form libraries I've tried have a lot of ceremony or they are plainly not performant. I also need to
-run custom functions that update a large number of fields that depend on eachother. Here are my issues with the
+The other popular form libraries I've tried either are plainly not performant or have an uncomfortable API. I also need
+to run custom functions that update a large number of fields that depend on eachother. Here are my issues with the
 libraries I've tried:
 - [Formik](https://formik.org/)
   - Unperformant with large forms. Making it performant is practically impossible.
