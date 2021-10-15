@@ -5,6 +5,7 @@ work with your form state in React. In practice, this means that you can build f
 regular object:
 
 ```tsx
+import React from 'react';
 import { useForm } from 'proxy-form';
 
 interface MyForm {
@@ -35,7 +36,7 @@ field dependencies are tracked automatically during rendering. Any fields that y
 and when the given field changes, the component is re-rendered automatically. This applies to arrays and nested objects
 as well.
 
-## Updates
+## Form updates
 Updates to the form can be done by calling the `update()` function that is returned from the `useForm()` hook. Updates
 are handled through [Immer](https://immerjs.github.io/immer/), so all the documentation from Immer applies to the
 update function. In short, you edit your form as you would any other JavaScript object, all the changes are tracked
@@ -49,19 +50,99 @@ update(form => {
 });
 ```
 
-### Form listeners
+### Global form listeners
 Form listeners listen to any updates on a form. When an update is performed, the listeners are called and they can
 perform their own changes on the form. This allows for a way to do central updates, e.g. for fields that depend on
 each-other.
 
-TODO
+For example, to centrally uppercase the `name` field in the form:
+```tsx
+import React from 'react';
+import { FormProvider } from 'proxy-form';
+
+interface MyForm {
+  name: string;
+  someValue: string;
+}
+export const MyFormComponent: React.FC<{}> = () => {
+  const defaultValues: MyForm = {
+    name: 'my name',
+    someValue: 'some value',
+  };
+
+  return (
+    <FormProvider defaultValues={defaultValues} listeners={[
+      ({ form, patch }) => {
+        if(patch.path[0] === 'name') {
+          form.name = form.name.toUpperCase();
+        }
+      }
+    ]}>
+      <MyComponent/>
+    </FormProvider>
+  );
+}
+```
+
+The `patch` variable here is a JSON patch provided by Immer. [The documentation for Immer's patch feature can be found
+here.](https://immerjs.github.io/immer/patches/)
 
 ## Usage
 ```sh
 yarn add proxy-form
 ```
 
-TODO
+The main API points are:
+- `<FormProvider/>` component, which stores the form state and exposes it as a React context
+- `useForm()` hook, which provides helpers to access the form state
+- `<UseForm/>` component, which is a wrapper around the `useForm()` hook. [This component is mainly used to encapsulate
+rendered fields to avoid re-rendering large React components](#controlled-fields)
+- `useFormContext()` hook, which provides raw access to the form context. This can be useful in some edge cases
+
+### Example use
+`types.ts`
+```ts
+export interface MyForm {
+  name: string;
+  someValue: string;
+}
+```
+
+`MyFormWrapper.tsx`
+```tsx
+import React from 'react';
+import { FormProvider } from 'proxy-form';
+import { MyForm } from './types';
+import { MyFormInputs } from './MyFormInputs';
+
+export const MyFormWrapper: React.FC<{}> = () => {
+  return (
+    <FormProvider<MyForm> defaultValues={{
+      name: '',
+      someValue: '',
+    }}>
+      <MyFormInputs/>
+    </FormProvider>
+  );
+}
+```
+
+`MyFormInputs.tsx`
+```tsx
+import React from 'react';
+import { useForm } from 'proxy-form';
+import { MyForm } from './types';
+
+export const MyFormInputs: React.FC<{}> = () => {
+  const { form, field } = useForm<MyForm>();
+  return (
+    <div>
+      <input type='text' {...field(form.name)}>
+      <input type='text' {...field(form.someValue)}>
+    </div>
+  );
+}
+```
 
 ### Caution with `field()`!
 When using `field()`, you should not access fields conditionally in the call, e.g. `field(form.value ||
@@ -107,7 +188,7 @@ export const MyComponent: React.FC<{}> = () => {
 Many of these are caught automatically, but you should be mindful of it.
 
 ## API
-TODO
+**TODO**
 
 ## Performance tips
 Performance in React mainly comes down to avoiding renders of large component trees. You want to focus updates and
@@ -120,6 +201,7 @@ official React documentation](https://reactjs.org/docs/uncontrolled-components.h
 
 To set the form to render in an uncontrolled manner by default:
 ```tsx
+import React from 'react';
 import { FormProvider } from 'proxy-form';
 
 export const MyApp: React.FC<{}> = () => (
@@ -132,6 +214,7 @@ export const MyApp: React.FC<{}> = () => (
 If you do not want to set the whole form to render uncontrolled by default, you can alternatively just render the all
 the fields in a single component in an uncontrolled manner:
 ```tsx
+import React from 'react';
 import { useForm } from 'proxy-form';
 
 export const MyComponent: React.FC<{}> = () => {
@@ -148,6 +231,7 @@ export const MyComponent: React.FC<{}> = () => {
 If you do not want to set the whole component to render in an uncontrolled manner, you can render a single field as
 uncontrolled:
 ```tsx
+import React from 'react';
 import { useForm } from 'proxy-form';
 
 export const MyComponent: React.FC<{}> = () => {
@@ -170,6 +254,7 @@ to their own component. You can either create your own custom components for thi
 `<UseForm/>` component:
 
 ```tsx
+import React from 'react';
 import { UseForm } from 'proxy-form';
 
 export const MyComponent: React.FC<{}> = () => {
