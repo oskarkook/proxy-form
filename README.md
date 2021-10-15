@@ -2,28 +2,65 @@
 Proxy Form is a library that uses JavaScript's
 [Proxies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) to make it easy to
 work with your form state in React. In practice, this means that you can build forms by simply treating your state as a
-regular object:
+regular object.
 
+## Usage
+```sh
+yarn add proxy-form
+```
+
+The main API points are:
+- `<FormProvider/>` component, which stores the form state and exposes it as a React context
+- `useForm()` hook, which provides helpers to access the form state
+- `<UseForm/>` component, which is a wrapper around the `useForm()` hook. [This component is mainly used to encapsulate
+rendered fields to avoid re-rendering large React components](#controlled-fields)
+- `useFormContext()` hook, which provides raw access to the form context. This can be useful in some edge cases
+
+### Example use
+`types.ts`
+```ts
+export interface MyForm {
+  name: string;
+  someValue: string;
+  numbers: number[];
+}
+```
+
+`MyFormWrapper.tsx`
+```tsx
+import React from 'react';
+import { FormProvider } from 'proxy-form';
+import { MyForm } from './types';
+import { MyFormInputs } from './MyFormInputs';
+
+export const MyFormWrapper: React.FC<{}> = () => {
+  return (
+    <FormProvider<MyForm> defaultValues={{
+      name: '',
+      someValue: '',
+      numbers: [],
+    }}>
+      <MyFormInputs/>
+    </FormProvider>
+  );
+}
+```
+
+`MyFormInputs.tsx`
 ```tsx
 import React from 'react';
 import { useForm } from 'proxy-form';
+import { MyForm } from './types';
 
-interface MyForm {
-  name: string;
-  someValue: string;
-  extraField: string;
-  specialField: number[];
-};
-export const MyFormComponent: React.FC<{}> = () => {
-  const { form, field, update } = useForm<MyForm>();
+export const MyFormInputs: React.FC<{}> = () => {
+  const { form, field } = useForm<MyForm>();
   return (
     <div>
-      <input type='text' {...field(form.name)} />
-      <input type='text' {...field(form.someValue)} />
-      <input type='text' {...field(form.extraField)} />
+      <input type='text' {...field(form.name)}>
+      <input type='text' {...field(form.someValue)}>
 
-      <div onClick={() => update(form => { form.specialField.push(Math.random() * 100) })}>
-        Random numbers: ${form.specialField.map(n => Math.floor(n))}
+      <div onClick={() => update(form => { form.numbers.push(Math.random() * 100) })}>
+        Random numbers: ${form.numbers.map(n => Math.floor(n))}
       </div>
     </div>
   );
@@ -87,64 +124,8 @@ export const MyFormComponent: React.FC<{}> = () => {
 The `patch` variable here is a JSON patch provided by Immer. [The documentation for Immer's patch feature can be found
 here.](https://immerjs.github.io/immer/patches/)
 
-## Usage
-```sh
-yarn add proxy-form
-```
 
-The main API points are:
-- `<FormProvider/>` component, which stores the form state and exposes it as a React context
-- `useForm()` hook, which provides helpers to access the form state
-- `<UseForm/>` component, which is a wrapper around the `useForm()` hook. [This component is mainly used to encapsulate
-rendered fields to avoid re-rendering large React components](#controlled-fields)
-- `useFormContext()` hook, which provides raw access to the form context. This can be useful in some edge cases
-
-### Example use
-`types.ts`
-```ts
-export interface MyForm {
-  name: string;
-  someValue: string;
-}
-```
-
-`MyFormWrapper.tsx`
-```tsx
-import React from 'react';
-import { FormProvider } from 'proxy-form';
-import { MyForm } from './types';
-import { MyFormInputs } from './MyFormInputs';
-
-export const MyFormWrapper: React.FC<{}> = () => {
-  return (
-    <FormProvider<MyForm> defaultValues={{
-      name: '',
-      someValue: '',
-    }}>
-      <MyFormInputs/>
-    </FormProvider>
-  );
-}
-```
-
-`MyFormInputs.tsx`
-```tsx
-import React from 'react';
-import { useForm } from 'proxy-form';
-import { MyForm } from './types';
-
-export const MyFormInputs: React.FC<{}> = () => {
-  const { form, field } = useForm<MyForm>();
-  return (
-    <div>
-      <input type='text' {...field(form.name)}>
-      <input type='text' {...field(form.someValue)}>
-    </div>
-  );
-}
-```
-
-### Caution with `field()`!
+## Caution with `field()`!
 When using `field()`, you should not access fields conditionally in the call, e.g. `field(form.value ||
 form.otherValue)` or `field(form.obj?.value)`. In the first case, you should assign the correct value to the form state
 itself, e.g. `field(form.valueOrOtherValue)`. In the second case, you should do the existency check outside the
