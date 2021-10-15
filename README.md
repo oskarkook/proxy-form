@@ -51,7 +51,11 @@ export const MyFormInputs: React.FC<{}> = () => {
       <input type='text' {...field(form.someValue)}>
 
       <div onClick={() => update(form => { form.numbers.push(Math.random() * 100) })}>
-        Random numbers: ${form.numbers.map(n => Math.floor(n))}
+        Random numbers: ${
+          form.numbers.map((number, index) =>
+            <span key={index}>{Math.floor(number)}</span>
+          )
+        }
       </div>
     </div>
   );
