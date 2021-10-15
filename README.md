@@ -126,8 +126,11 @@ here.](https://immerjs.github.io/immer/patches/)
 
 
 ## Caution with `field()`!
-When using `field()`, you should not access fields conditionally in the call, e.g. `field(form.value ||
-form.otherValue)` or `field(form.obj?.value)`. In the first case, you should assign the correct value to the form state
+When using `field()`, you should not access fields conditionally in the call, e.g:
+- `field(form.value || form.otherValue)` or
+- `field(form.obj?.value)`
+ 
+In the first case, you should assign the correct value to the form state
 itself, e.g. `field(form.valueOrOtherValue)`. In the second case, you should do the existency check outside the
 `field()` call:
 
