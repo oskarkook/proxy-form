@@ -6,8 +6,7 @@
   "main": "dist/lib/index.js",
   "types": "dist/types/index.d.ts",
   "files": [
-    "lib",
-    "src"
+    "dist"
   ],
   "dependencies": {
     "immer": "^9.0.6"
