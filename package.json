@@ -1,0 +1,26 @@
+{
+  "name": "proxy-form",
+  "version": "0.0.2",
+  "description": "Form state management for React with JS proxies",
+  "license": "UNLICENSED",
+  "main": "dist/lib/index.js",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "dependencies": {
+    "immer": "^9.0.6"
+  },
+  "devDependencies": {
+    "@types/react": "^17.0.30",
+    "react": "^17.0.2",
+    "typescript": "^4.4.4"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0"
+  },
+  "scripts": {
+    "build": "rm -rf ./lib && tsc",
+    "push": "yarn build && yarn publish"
+  }
+}
