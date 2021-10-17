@@ -134,7 +134,23 @@ here.](https://immerjs.github.io/immer/patches/)
 
 
 ## Caution with `field()`!
-When using `field()`, you should not access fields conditionally in the call, e.g:
+The `field()` function is similar to React's hooks in that it depends on the execution order. When calling the `field()`
+function, you must always access a path through the form proxy:
+```ts
+// Correct
+const { form, field } = useForm<MyForm>();
+field(form.item.value);
+
+// Also correct (item object is still a proxy!)
+const item = form.item;
+field(item.value);
+
+// Incorrect
+const value = form.item.value;
+field(value);
+```
+
+You should not access fields conditionally in the call, e.g:
 - `field(form.value || form.otherValue)` or
 - `field(form.obj?.value)`
  
