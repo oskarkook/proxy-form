@@ -13,13 +13,12 @@ export function useFormContext<TForm>(): ContextValue<TForm> {
 export interface UseFormReturn<TForm> {
   form: TForm;
   update: ContextValue<TForm>['update'];
-  field: <TValue>(value: TValue, fieldOptions?: FieldOptions) => FieldHelpers<TValue>;
+  field: <TValue>(value: TValue, fieldOptions?: FieldOptions<TValue>) => FieldHelpers<TValue>;
 }
 
-export interface FieldOptions extends FormOptions {
-  controlled?: boolean;
-  mode?: 'onChange' | 'onBlur';
-}
+export interface FieldOptions<TValue> extends FormOptions {
+  transform?: (newValue: TValue, prevValue: TValue) => TValue;
+};
 
 export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> {
   const { register, getForm, update, trigger, defaultOptions } = useFormContext<TForm>();
@@ -42,7 +41,7 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
   return {
     form: proxy as TForm,
     update,
-    field<TValue>(value: TValue, fieldOptions?: FieldOptions) {
+    field<TValue>(value: TValue, fieldOptions?: FieldOptions<TValue>) {
       // Check if user is trying to access a proxy. If so, return the actual object.
       if(value && typeof value === 'object') {
         const proxyInfo = (value as any)[proxyIdentifier]; // This is a "special field" we have in our proxy implementation.
@@ -84,6 +83,10 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
             } else {
               newValue = target.value;
             }
+          }
+
+          if(fieldOptions?.transform) {
+            newValue = fieldOptions.transform(newValue, fieldValue);
           }
 
           update(form => {
