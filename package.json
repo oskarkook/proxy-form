@@ -1,6 +1,6 @@
 {
   "name": "proxy-form",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Form state management for React with JS proxies",
   "license": "UNLICENSED",
   "main": "dist/lib/index.js",
