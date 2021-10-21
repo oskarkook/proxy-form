@@ -23,9 +23,9 @@ export type FormListener<TForm> = (props: {
   changed: (fieldPath: FieldPath) => boolean,
 }) => TForm | void;
 
-export interface FieldHelpers<TValue> {
+export interface FieldHelpers<TValue, TSource> {
   name: string;
   value: TValue;
-  onChange: (data: ChangeEvent | TValue) => void;
+  onChange: (data: ChangeEvent | TSource) => void;
   onBlur: () => void;
 };
