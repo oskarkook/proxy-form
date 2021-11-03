@@ -1,7 +1,7 @@
 import produce, { enablePatches, Patch, produceWithPatches } from 'immer';
 import { createContext } from 'react';
-import { FieldsMap, getIn, groupListeners, isPlainObject, mkDefault } from './helpers';
-import { FieldName, FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
+import { FieldsMap, getIn, groupListeners, isFunction, isMap, isPlainObject, mkDefault } from './helpers';
+import { FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
 
 export interface ContextValue<TForm> {
   register: (fieldPaths: FieldPath[], onUpdate: RegistrationUpdater<TForm>) => UnsubscribeFn;
@@ -123,16 +123,30 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
   }
 
   trigger() {
-    const paths = this.pendingPatches.map(patch => {
+    const paths: FieldPath[] = [];
+
+    this.pendingPatches.forEach(patch => {
       const referencePath = patch.path.slice(0, -1);
       const reference: any = getIn(this.form, referencePath);
       
       const value = reference[patch.path[patch.path.length - 1]];
-      if(Array.isArray(reference) || Array.isArray(value) || isPlainObject(value)) {
-        return referencePath;
-      }
 
-      return patch.path;
+      if(Array.isArray(value) || isPlainObject(value)) {
+        paths.push(referencePath);
+      } else if(Array.isArray(reference)) {
+        paths.push(patch.path);
+        const registrations = this.registrations.get(referencePath);
+        if(isMap(registrations)) {
+          const keys = registrations.keys();
+          for(let key of keys) {
+            if(isFunction(key)) {
+              paths.push([...referencePath, key]);
+            }
+          }
+        }
+      } else {
+        paths.push(patch.path);
+      }
     });
 
     const listeners = groupListeners(this.registrations, paths);

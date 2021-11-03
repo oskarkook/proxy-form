@@ -7,7 +7,7 @@ export function mkDefault<TValue>(defaultValue: TValue, ...values: Array<TValue 
 }
 
 type AccessorFn<T> = (obj: any, key: FieldName) => T;
-const objGetter: AccessorFn<any> = (obj, key) => obj[key];
+const objGetter: AccessorFn<any> = (obj, key: any) => obj[key];
 export function getIn<T = unknown>(obj: any, path: FieldPath, accessor: AccessorFn<T> = objGetter): T | undefined {
   return path.reduce(
     (result, key) => {
@@ -19,7 +19,7 @@ export function getIn<T = unknown>(obj: any, path: FieldPath, accessor: Accessor
 }
 
 type SetterFn<T> = (obj: any, key: FieldName, value: T) => void;
-const objSetter: SetterFn<any> = (obj, key, value) => obj[key] = value;
+const objSetter: SetterFn<any> = (obj, key: any, value) => obj[key] = value;
 export function setIn<T>(obj: any, path: FieldPath, value: T, defaultValue: () => any, accessor: AccessorFn<T> = objGetter, setter: SetterFn<T> = objSetter) {
   if(path.length === 1) {
     setter(obj, path[0], value);
@@ -54,7 +54,15 @@ export function isPlainObject(value: any): boolean {
 	return typeof Ctor == "function" && Function.toString.call(Ctor) === objectCtorString;
 }
 
-export function createProxy(identifier: symbol, form: Record<FieldName, any>, prevPath: FieldPath, onAccess: (path: FieldPath) => void): any {
+export function isFunction(value: any): boolean {
+  return value instanceof Function || typeof value === 'function';
+}
+
+export function isMap(value: any): value is Map<any, any> {
+  return value instanceof Map;
+}
+
+export function createProxy<TForm>(identifier: symbol, form: TForm, prevPath: FieldPath, onAccess: (path: FieldPath) => void): any {
   const parent: any = getIn(form, prevPath);
 
   return new Proxy(Array.isArray(parent) ? [] : {}, {
@@ -62,14 +70,15 @@ export function createProxy(identifier: symbol, form: Record<FieldName, any>, pr
       if(prop === identifier) return [parent, prevPath];
 
       const value = parent[prop];
-      const path = [...prevPath, prop];
       if(Array.isArray(value) || isPlainObject(value)) {
+        const path = [...prevPath, prop];
         return createProxy(identifier, form, path, onAccess);
+      } else if(isFunction(value)) {
+        // We use the value itself, so we can differentiate between array elements and actual functions on the array.
+        onAccess([...prevPath, value]);
+        return value.bind(receiver);
       } else {
-        onAccess(path);
-        if(value instanceof Function) {
-          return value.bind(receiver);
-        }
+        onAccess([...prevPath, prop]);
         return value;
       }
     },
@@ -125,9 +134,9 @@ export class FieldsMap<TValue> {
   }
 
   public delete(path: FieldPath): void {
-    const reference: any = this.get(path.slice(0, -1));
-    if(isPlainObject(reference)) {
-      delete reference[path[path.length - 1]];
+    const reference = this.get(path.slice(0, -1));
+    if(isMap(reference)) {
+      reference.delete(path[path.length - 1]);
     }
   }
 }

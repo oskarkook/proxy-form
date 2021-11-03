@@ -1,5 +1,6 @@
 import { Patch } from 'immer';
 import { ProviderContext } from '../src/context';
+import { isFunction } from '../src/helpers';
 
 
 describe('ProviderContext', () => {
@@ -23,7 +24,7 @@ describe('ProviderContext', () => {
       expect(onUpdate).toHaveBeenCalledTimes(2);
     });
 
-    it('calls function with form value on registration', () => {
+    it('calls update function with form value on registration', () => {
       const context = new ProviderContext({ name: 'test' });
       const onUpdate = jest.fn();
       context.register([], onUpdate);
@@ -53,23 +54,35 @@ describe('ProviderContext', () => {
     });
   });
 
-  it('getForm returns current form state', () => {
-    const context = new ProviderContext({ name: 'test' });
-    expect(context.getForm()).toEqual({ name: 'test' });
-
-    context.update(f => {
-      f.name = 'new name';
+  describe('getForm', () => {
+    it('returns current form state', () => {
+      const context = new ProviderContext({ name: 'test' });
+      expect(context.getForm()).toEqual({ name: 'test' });
+  
+      context.update(f => {
+        f.name = 'new name';
+      });
+  
+      expect(context.getForm()).toEqual({ name: 'new name' });
     });
-
-    expect(context.getForm()).toEqual({ name: 'new name' });
   });
 
-  it('calls update function on registration', () => {
-    const context = new ProviderContext({ name: 'test' });
-    const onUpdate = jest.fn();
-    context.register([], onUpdate);
-    expect(onUpdate).toHaveBeenCalledTimes(1);
-    expect(onUpdate).toHaveBeenCalledWith({ name: 'test' });
+  describe('trigger', () => {
+    it('will notify all registered listeners of the pending patches', () => {
+      const context = new ProviderContext({ name: 'test' });
+      const onUpdate = jest.fn();
+      context.register([['name']], onUpdate);
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+
+      context.update(f => {
+        f.name = 'new name';
+      }, { notify: false });
+
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+
+      context.trigger();
+      expect(onUpdate).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('calls update function after update', () => {
@@ -97,16 +110,34 @@ describe('ProviderContext', () => {
     expect(onUpdate).toBeCalledTimes(2);
   });
 
-  it('updates any functions that work on arrays', () => {
+  it('updates basic array iterators like map and forEach', () => {
+    const value = { items: [1, 2, 3] };
+    const context = new ProviderContext(value);
+    const mapListener = jest.fn();
+    const forEachListener = jest.fn();
+
+    context.register([['items', value.items.map]], mapListener);
+    context.register([['items', value.items.forEach]], forEachListener);
+
+    context.update(f => {
+      f.items.push(4);
+    });
+
+    expect(mapListener).toBeCalledTimes(2);
+    expect(forEachListener).toBeCalledTimes(2);
+  });
+
+  it('updates any listeners that depend on array iterators', () => {
     const context = new ProviderContext({ items: [1, 2, 3] });
 
-    const fnNames = Object.getOwnPropertyNames(Array.prototype).filter(n => n !== 'constructor' && n !== 'toLocaleString' && n !== 'toString');
-    const listeners = fnNames.map(name => {
+    const listeners = Object.values(Object.getOwnPropertyDescriptors(Array.prototype)).filter(d => isFunction(d.value)).map(descriptor => {
       const listener = jest.fn();
-      context.register([['items', name]], listener);
+      context.register([['items', descriptor.value]], listener);
       expect(listener).toBeCalledTimes(1);
       return listener;
     });
+
+    expect(listeners).toHaveLength(32);
 
     context.update(f => {
       f.items[1] = 10;
@@ -116,7 +147,24 @@ describe('ProviderContext', () => {
     listeners.forEach((listener, i) => {
       // once on mount, once on update
       expect(listener).toBeCalledTimes(2);
+    });
+  });
+
+  it('updates any listeners that depend on array elements', () => {
+    const context = new ProviderContext({ items: [1, 2, 3] });
+    const onUpdate = jest.fn();
+    context.register([['items', 1]], onUpdate);
+    expect(onUpdate).toBeCalledTimes(1);
+    context.update(f => {
+      f.items[1] = 10;
+    });
+    expect(onUpdate).toBeCalledTimes(2);
+
+    // Should not update when another element is updated
+    context.update(f => {
+      f.items[2] = 11;
     })
+    expect(onUpdate).toBeCalledTimes(2);
   });
 
   it('calls global form listeners on update', () => {
@@ -156,5 +204,48 @@ describe('ProviderContext', () => {
     };
 
     expect(onUpdate.mock.calls[0][0].patch).toEqual(expectedPatch);
-  })
+  });
+
+  it('runs global listeners until there are no updates left', () => {
+    const context = new ProviderContext({ name: 'test' });
+
+    let i = 0;
+    const onUpdate = jest.fn(({ form, patch }) => {
+      if(i < 2) {
+        form.name = `new name ${++i}`;
+      }
+    });
+    context.listen(onUpdate);
+    context.update(f => {
+      f.name = 'new name 0';
+    });
+
+    expect(onUpdate).toHaveBeenCalledTimes(3);
+    expect(onUpdate.mock.calls[0][0].patch.value).toBe('new name 0');
+    expect(onUpdate.mock.calls[1][0].patch.value).toBe('new name 1');
+    expect(onUpdate.mock.calls[2][0].patch.value).toBe('new name 2');
+  });
+
+  it('will not call listeners that depend on fields that were not updated', () => {
+    const context = new ProviderContext({ name: 'test', value: 'value' });
+    const onNameUpdate = jest.fn();
+    const onValueUpdate = jest.fn();
+
+    context.register([['name']], onNameUpdate);
+    context.register([['value']], onValueUpdate);
+
+    context.update(f => {
+      f.name = 'new name';
+    });
+
+    expect(onNameUpdate).toHaveBeenCalledTimes(2);
+    expect(onValueUpdate).toHaveBeenCalledTimes(1);
+
+    context.update(f => {
+      f.value = 'new value';
+    });
+
+    expect(onNameUpdate).toHaveBeenCalledTimes(2);
+    expect(onValueUpdate).toHaveBeenCalledTimes(2);
+  });
 });
