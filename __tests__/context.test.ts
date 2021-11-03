@@ -206,6 +206,17 @@ describe('ProviderContext', () => {
     expect(onUpdate.mock.calls[0][0].patch).toEqual(expectedPatch);
   });
 
+  it('provides the changed function to global form listeners', () => {
+    const context = new ProviderContext({ name: 'test' });
+    const onUpdate = jest.fn(({ changed }) => {
+      expect(changed(['name'])).toBe(true);
+    });
+    context.listen(onUpdate);
+    context.update(f => {
+      f.name = 'new name';
+    });
+  });
+
   it('runs global listeners until there are no updates left', () => {
     const context = new ProviderContext({ name: 'test' });
 
