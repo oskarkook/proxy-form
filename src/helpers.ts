@@ -7,32 +7,38 @@ export function mkDefault<TValue>(defaultValue: TValue, ...values: Array<TValue 
 }
 
 type AccessorFn<T> = (obj: any, key: FieldName) => T;
-export function getIn<T = unknown>(obj: any, path: FieldPath, accessor?: AccessorFn<T>): T | undefined {
+const objGetter: AccessorFn<any> = (obj, key) => obj[key];
+export function getIn<T = unknown>(obj: any, path: FieldPath, accessor: AccessorFn<T> = objGetter): T | undefined {
   return path.reduce(
     (result, key) => {
       if(result === undefined || result === null) return undefined;
-      if(accessor) return accessor(result, key);
-      return result[key];
+      return accessor(result, key);
     },
     obj
   );
 }
 
-export function setIn<T>(obj: any, path: FieldPath, value: T) {
+type SetterFn<T> = (obj: any, key: FieldName, value: T) => void;
+const objSetter: SetterFn<any> = (obj, key, value) => obj[key] = value;
+export function setIn<T>(obj: any, path: FieldPath, value: T, defaultValue: () => any, accessor: AccessorFn<T> = objGetter, setter: SetterFn<T> = objSetter) {
   if(path.length === 1) {
-    obj[path[0]] = value;
+    setter(obj, path[0], value);
     return;
   }
 
   // Prepare object by creating the necessary path
   const lastObj = path.slice(0, -1).reduce(
     (result, key) => {
-      if(!result[key]) result[key] = {};
-      return result[key];
+      let keyValue = accessor(result, key);
+      if(keyValue === undefined) {
+        keyValue = defaultValue();
+        setter(result, key, keyValue);
+      }
+      return keyValue;
     }, obj
   );
 
-  lastObj[path[path.length - 1]] = value;
+  setter(lastObj, path[path.length - 1], value);
 }
 
 const objectCtorString = Object.prototype.constructor.toString()
@@ -102,12 +108,12 @@ export function createProxy(identifier: symbol, form: Record<FieldName, any>, pr
   });
 }
 
-type Fields<TValue> = {[key: FieldName]: Fields<TValue> | TValue};
+type Fields<TValue> = Map<FieldName, Fields<TValue> | TValue>;
 export class FieldsMap<TValue> {
-  private fields: Fields<TValue> = {};
+  private fields: Fields<TValue> = new Map();
 
-  public get(path: FieldPath, accessor?: AccessorFn<TValue>): Fields<TValue> | TValue | undefined {
-    return getIn(this.fields, path, accessor);
+  public get(path: FieldPath): Fields<TValue> | TValue | undefined {
+    return getIn(this.fields, path, (map, key) => map.get(key));
   }
 
   public has(path: FieldPath): boolean {
@@ -115,7 +121,7 @@ export class FieldsMap<TValue> {
   }
 
   public set(path: FieldPath, value: TValue): void {
-    setIn(this.fields, path, value);
+    setIn(this.fields, path, value, () => new Map(), (map, key) => map.get(key), (map, key, value) => map.set(key, value));
   }
 
   public delete(path: FieldPath): void {
@@ -127,16 +133,19 @@ export class FieldsMap<TValue> {
 }
 
 
-export function callRegistrations<TForm>(registrations: FieldsMap<RegistrationUpdater<TForm>[]>, path: FieldPath, onUpdate: (listener: RegistrationUpdater<TForm>) => void) {
-  const listeners = registrations.get(path, (obj, key) => Object.getOwnPropertyDescriptor(obj, key)?.value);
-  if(!listeners) return;
+export function groupListeners<TForm>(registrations: FieldsMap<RegistrationUpdater<TForm>[]>, paths: FieldPath[], set: Set<RegistrationUpdater<TForm>> = new Set()): Set<RegistrationUpdater<TForm>> {
+  paths.forEach(path => {
+    const listeners = registrations.get(path);
+    if(!listeners) return undefined;
 
-  if(Array.isArray(listeners)) {
-    listeners.forEach(onUpdate);
-  } else {
-    // An object is referenced. Anything that listens deeper than this needs to be updated.
-    Object.getOwnPropertyNames(listeners).forEach(field => {
-      callRegistrations(registrations, [...path, field], onUpdate);
-    });
-  }
+    if(Array.isArray(listeners)) {
+      listeners.forEach(l => set.add(l));
+    } else {
+      // An object is referenced. Anything that listens deeper than this needs to be updated.
+      const nestedPaths = Array.from(listeners.keys()).map(name => [...path, name]);
+      groupListeners(registrations, nestedPaths, set);
+    }
+  });
+
+  return set;
 }

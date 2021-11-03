@@ -1,10 +1,7 @@
-import { enablePatches } from 'immer';
 import React, { Context, useContext, useEffect, useState } from 'react';
 import { ContextValue, FormContext } from './context';
 import { createProxy, getIn, mkDefault, setIn } from './helpers';
 import { ChangeEvent, FieldHelpers, FieldPath, FormOptions } from './types';
-
-enablePatches();
 
 export function useFormContext<TForm>(): ContextValue<TForm> {
   return useContext(FormContext as Context<ContextValue<TForm>>);
@@ -86,11 +83,11 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
           }
 
           if(fieldOptions?.transform) {
-            newValue = fieldOptions.transform(newValue, fieldValue);
+            newValue = fieldOptions.transform(newValue as TSource, fieldValue as TValue);
           }
 
           update(form => {
-            setIn(form, fieldPath, newValue);
+            setIn(form, fieldPath, newValue, () => {});
           }, { notify: mode === 'onChange' });
         },
         onBlur: () => {
