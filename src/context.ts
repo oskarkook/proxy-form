@@ -132,8 +132,12 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
       const value = reference[patch.path[patch.path.length - 1]];
 
       if(Array.isArray(value) || isPlainObject(value)) {
+        // If an array or object is changed, we need to notify all the listeners deeper in the dependency tree. When we
+        // provide referencePath, all listeners anywhere downstream will be notified.
         paths.push(referencePath);
       } else if(Array.isArray(reference)) {
+        // If reference is an array, we need to find all the functions that depend on this array. These can be for
+        // example functions like `map`, `filter` or `forEach`.
         paths.push(patch.path);
         const registrations = this.registrations.get(referencePath);
         if(isMap(registrations)) {
