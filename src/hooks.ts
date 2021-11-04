@@ -62,11 +62,6 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
         throw new Error('Incorrect field access.');
       }
 
-      if(!mkDefault(true, fieldOptions?.controlled, formOptions?.controlled)) {
-        // If this is not a controlled field, do not track this access.
-        accessedPaths.pop();
-      }
-
       let preparedValue: TPrepared = fieldValue;
       if(fieldOptions?.prepare) {
         preparedValue = fieldOptions.prepare(fieldValue);

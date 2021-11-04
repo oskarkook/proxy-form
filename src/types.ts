@@ -11,7 +11,6 @@ export type ChangeEvent = {
 
 // Form
 export interface FormOptions {
-  controlled?: boolean;
   mode?: 'onChange' | 'onBlur';
 }
 

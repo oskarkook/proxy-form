@@ -13,7 +13,7 @@ The main API points are:
 - `<FormProvider/>` component, which stores the form state and exposes it as a React context
 - `useForm()` hook, which provides helpers to access the form state
 - `<UseForm/>` component, which is a wrapper around the `useForm()` hook. [This component is mainly used to encapsulate
-rendered fields to avoid re-rendering large React components](#controlled-fields)
+rendered fields to avoid re-rendering large React components](#performance-tips)
 - `useFormContext()` hook, which provides raw access to the form context. This can be useful in some edge cases
 
 ### Example use
@@ -201,73 +201,19 @@ Many of these are caught automatically, but you should be mindful of it.
 `field(value, options?)`
 - `value` - Required. A value from your form, e.g. `field(form.name)`
 - `options` - Optional. An object with the following optional properties:
-  - `controlled` - Sets the field to either render in controlled or uncontrolled fashion
   - `mode` - `onBlur` or `onChange`. Defaults to `onChange`, which will trigger updates to the UI on any change. When set to `onBlur`, it will trigger updates to the UI when the field loses focus.
   - `transform` - A function to transform the value from the change event, before it is saved into the form
   - `prepare` - A function to prepare the value from the form for the UI element
 
 ## Performance tips
 Performance in React mainly comes down to avoiding renders of large component trees. You want to focus updates and
-re-renders to only the fields that actually change. There's two ways to do this.
+re-renders to only the fields that actually change. 
 
-### Uncontrolled forms or fields
-The simplest solution to performance issues is to render the form or the fields in an uncontrolled manner. This means
-that changes from the input are propagated to the form state, but dependencies are not actually tracked. [See also:
-official React documentation](https://reactjs.org/docs/uncontrolled-components.html).
+One way to minimize updates is to render the fields in `onBlur` mode. This will trigger updates to the UI only after
+the changed field loses focus. See the [API](#api) above for more information.
 
-To set the form to render in an uncontrolled manner by default:
-```tsx
-import React from 'react';
-import { FormProvider } from 'proxy-form';
-
-export const MyApp: React.FC<{}> = () => (
-  <FormProvider defaultValues={{}} defaultOptions={{ controlled: false }}>
-    <MyComponent/>
-  </FormProvider>
-);
-```
-
-If you do not want to set the whole form to render uncontrolled by default, you can alternatively just render the all
-the fields in a single component in an uncontrolled manner:
-```tsx
-import React from 'react';
-import { useForm } from 'proxy-form';
-
-export const MyComponent: React.FC<{}> = () => {
-  const { field, form } = useForm<MyForm>({ controlled: false });
-
-  return (
-    <div>
-      <input type='text' {...field(form.name)}>
-    </div>
-  );
-}
-```
-
-If you do not want to set the whole component to render in an uncontrolled manner, you can render a single field as
-uncontrolled:
-```tsx
-import React from 'react';
-import { useForm } from 'proxy-form';
-
-export const MyComponent: React.FC<{}> = () => {
-  const { field, form } = useForm<MyForm>();
-
-  return (
-    <div>
-      <input type='text' {...field(form.name, { controlled: false })}>
-    </div>
-  )
-}
-```
-
-You can mix and match these uses to your preference. A higher-specificity option overrides a lower-specificity one
-(`field() > useForm() > FormProvider`)
-
-### Controlled fields
-If uncontrolled fields do not suit your use-case, the main performance gain in a controlled form is to scope the fields
-to their own component. You can either create your own custom components for this, or you can wrap the field in a
-`<UseForm/>` component:
+Another way is to scope the fields to their own component. You can either create your own custom components for this
+or you can wrap the field in a `<UseForm/>` component:
 
 ```tsx
 import React from 'react';
