@@ -198,6 +198,13 @@ Many of these are caught automatically, but you should be mindful of it.
 ## API
 **TODO**
 
+`field(value, options?)`
+- `value` - Required. A value from your form, e.g. `field(form.name)`
+- `options` - Optional. An object with the following optional properties:
+  - `controlled` - Sets the field to either render in controlled or uncontrolled fashion
+  - `mode` - `onBlur` or `onChange`. Defaults to `onChange`, which will trigger updates to the UI on any change. When set to `onBlur`, it will trigger updates to the UI when the field loses focus.
+  - `transform` - A function to transform the value from the change event, before it is saved into the form
+
 ## Performance tips
 Performance in React mainly comes down to avoiding renders of large component trees. You want to focus updates and
 re-renders to only the fields that actually change. There's two ways to do this.
