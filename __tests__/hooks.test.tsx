@@ -6,8 +6,9 @@ import React from 'react';
 import { FormProvider } from '../src/formProvider';
 import { useForm, UseForm } from '../src/hooks';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
-describe('UseForm', () => {
+describe('useForm', () => {
   it('will update with nested values', () => {
     interface Form {
       name: string;
@@ -62,4 +63,46 @@ describe('UseForm', () => {
     fireEvent.change(itemTextInput, { target: { value: 'something else' } });
     expect(itemTextInput.value).toBe('something else');
   });
+
+  describe('field', () => {
+    it('keeps the same value over re-renders', () => {
+      interface Form {
+        name: string;
+      }
+  
+      const TestForm = () => {
+        const [localName, setLocalName] = React.useState('test');
+        const { form, field, update } = useForm<Form>();
+  
+        return (
+          <div>
+            <input {...field(form.name)}/>
+            <button onClick={() => {
+              update(f => {
+                f.name = 'new name';
+              }, {notify: false});
+              setLocalName('new name');
+            }}>
+              Update
+            </button>
+          </div>
+        );
+      };
+  
+      render(
+        <FormProvider defaultValues={{ name: 'test' }}>
+          <TestForm/>
+        </FormProvider>
+      );
+  
+      expect(screen.queryByDisplayValue('test')).toBeInTheDocument();
+  
+      const button = screen.getByText('Update');
+      fireEvent.click(button);
+  
+      expect(screen.queryByDisplayValue('new name')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('test')).toBeInTheDocument();
+    });
+  });
+
 });

@@ -55,7 +55,7 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
         throw new Error('Incorrect form access. Are you mixing variables from nested useForm?');
       }
 
-      const fieldValue = getIn(getForm(), fieldPath) as any;
+      const fieldValue = getIn(formState, fieldPath) as any;
       if(fieldValue !== value && !(isNaN(fieldValue) && isNaN(value as any))) {
         // Sanity check. User has used this function incorrectly if we can't get the same value out of the path.
         throw new Error('Incorrect field access.');

@@ -1,7 +1,7 @@
 import produce, { enablePatches, Patch, produceWithPatches } from 'immer';
 import { createContext } from 'react';
 import { FieldsMap, getIn, groupListeners, isMap, isPlainObject, mkDefault } from './helpers';
-import { FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
+import { FieldName, FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
 
 export interface ContextValue<TForm> {
   register: (fieldPaths: FieldPath[], onUpdate: RegistrationUpdater<TForm>) => UnsubscribeFn;
@@ -23,7 +23,7 @@ export const FormContext = createContext<ContextValue<unknown>>({
 enablePatches();
 export class ProviderContext<TForm> implements ContextValue<TForm> {
   private form: Readonly<TForm>;
-  private changedFields: FieldsMap<boolean> = new FieldsMap();
+  private changedFields: FieldsMap<Map<FieldName, any>> = new FieldsMap();
   private registrations: FieldsMap<RegistrationUpdater<TForm>[]> = new FieldsMap();
   private pendingPatches: readonly Patch[] = [];
   private formListeners: readonly FormListener<TForm>[];
@@ -88,7 +88,7 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
       // Update changed fields. Note we run this only on the initial update as we only track fields that were changed by user.
       initialUpdate[1].forEach(patch => {
         if(patch.op === 'add' || patch.op === 'replace') {
-          this.changedFields.set(patch.path, true);
+          this.changedFields.set(patch.path, new Map());
         } else if(patch.op === 'remove') {
           this.changedFields.delete(patch.path);
         }
