@@ -61,7 +61,8 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
         throw new Error('Incorrect field access.');
       }
 
-      if(!mkDefault(true, fieldOptions?.controlled, formOptions?.controlled)) {
+      const isControlled = mkDefault(true, fieldOptions?.controlled, formOptions?.controlled);
+      if(!isControlled) {
         // If this is not a controlled field, do not track this access.
         accessedPaths.pop();
       }
@@ -69,8 +70,8 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
       const mode = mkDefault('onChange', fieldOptions?.mode, formOptions?.mode);
       return {
         name: fieldPath.join('.'),
-        value: mode === 'onChange' ? fieldValue as TValue : undefined,
-        defaultValue: mode === 'onBlur' ? fieldValue as TValue : undefined,
+        value: isControlled ? fieldValue as TValue : undefined,
+        defaultValue: !isControlled ? fieldValue as TValue : undefined,
         onChange: (eventOrValue: ChangeEvent | TSource) => {
           let newValue: any = eventOrValue;
           if(eventOrValue instanceof Object && eventOrValue.target) {
@@ -87,9 +88,16 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
             newValue = fieldOptions.transform(newValue as TSource, fieldValue as TValue);
           }
 
+          const shouldNotify = mode === 'onChange';
           update(form => {
             setIn(form, fieldPath, newValue, () => ({}));
-          }, { notify: mode === 'onChange' });
+          }, { notify: shouldNotify });
+
+          if(!shouldNotify) {
+            // Even if the other listeners are not updated, this specific listener must be updated to ensure that the
+            // value is properly reflected in the UI.
+            setFormState(getForm());
+          }
         },
         onBlur: () => {
           // TODO (check react-hook-form!)
