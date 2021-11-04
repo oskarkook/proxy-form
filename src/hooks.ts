@@ -10,11 +10,12 @@ export function useFormContext<TForm>(): ContextValue<TForm> {
 export interface UseFormReturn<TForm> {
   form: TForm;
   update: ContextValue<TForm>['update'];
-  field: <TValue, TSource = TValue>(value: TValue, fieldOptions?: FieldOptions<TValue, TSource>) => FieldHelpers<TValue, TSource>;
+  field: <TValue, TSource = TValue, TPrepared = TValue>(value: TValue, fieldOptions?: FieldOptions<TValue, TSource, TPrepared>) => FieldHelpers<TPrepared, TSource>;
 }
 
-export interface FieldOptions<TValue, TSource> extends FormOptions {
+export interface FieldOptions<TValue, TSource, TPrepared> extends FormOptions {
   transform?: (newValue: TSource, prevValue: TValue) => TValue;
+  prepare?: (value: TValue) => TPrepared;
 };
 
 export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> {
@@ -38,7 +39,7 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
   return {
     form: proxy as TForm,
     update,
-    field<TValue, TSource = TValue>(value: TValue, fieldOptions?: FieldOptions<TValue, TSource>) {
+    field<TValue, TSource = TValue, TPrepared = TValue>(value: TValue, fieldOptions?: FieldOptions<TValue, TSource, TPrepared>) {
       // Check if user is trying to access a proxy. If so, return the actual object.
       if(value && typeof value === 'object') {
         const proxyInfo = (value as any)[proxyIdentifier]; // This is a "special field" we have in our proxy implementation.
@@ -61,16 +62,20 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
         throw new Error('Incorrect field access.');
       }
 
-      const isControlled = mkDefault(true, fieldOptions?.controlled, formOptions?.controlled);
-      if(!isControlled) {
+      if(!mkDefault(true, fieldOptions?.controlled, formOptions?.controlled)) {
         // If this is not a controlled field, do not track this access.
         accessedPaths.pop();
+      }
+
+      let preparedValue: TPrepared = fieldValue;
+      if(fieldOptions?.prepare) {
+        preparedValue = fieldOptions.prepare(fieldValue);
       }
 
       const mode = mkDefault('onChange', fieldOptions?.mode, formOptions?.mode);
       return {
         name: fieldPath.join('.'),
-        value: fieldValue,
+        value: preparedValue,
         onChange: (eventOrValue: ChangeEvent | TSource) => {
           let newValue: any = eventOrValue;
           if(eventOrValue instanceof Object && eventOrValue.target) {

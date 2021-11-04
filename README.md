@@ -204,6 +204,7 @@ Many of these are caught automatically, but you should be mindful of it.
   - `controlled` - Sets the field to either render in controlled or uncontrolled fashion
   - `mode` - `onBlur` or `onChange`. Defaults to `onChange`, which will trigger updates to the UI on any change. When set to `onBlur`, it will trigger updates to the UI when the field loses focus.
   - `transform` - A function to transform the value from the change event, before it is saved into the form
+  - `prepare` - A function to prepare the value from the form for the UI element
 
 ## Performance tips
 Performance in React mainly comes down to avoiding renders of large component trees. You want to focus updates and
