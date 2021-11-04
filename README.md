@@ -196,14 +196,44 @@ export const MyComponent: React.FC<{}> = () => {
 Many of these are caught automatically, but you should be mindful of it.
 
 ## API
-**TODO**
+### `<FormProvider/>`
+Root component, which sets up the context for the form.
 
-`field(value, options?)`
-- `value` - Required. A value from your form, e.g. `field(form.name)`
-- `options` - Optional. An object with the following optional properties:
-  - `mode` - `onBlur` or `onChange`. Defaults to `onChange`, which will trigger updates to the UI on any change. When set to `onBlur`, it will trigger updates to the UI when the field loses focus.
-  - `transform` - A function to transform the value from the change event, before it is saved into the form
-  - `prepare` - A function to prepare the value from the form for the UI element
+Props:
+- `defaultValues` - Required. Provides default (initial) values for the form
+- `defaultOptions` - Optional. An object with the following optional properties:
+  - `mode` - `onBlur` or `onChange`. Defaults to `onChange`, which will trigger updates to the UI on any change. When set to `onBlur`, it will trigger updates to the UI when the field loses focus
+
+### `useForm()`
+Hook, which provides some convenience functions and tracks dependencies.
+
+Returns an object with the follow properties:
+- `form` - A proxy object around your form. When you access a field on the form, it is recorded as a dependency and your
+component will update when the field changes
+- `update(callback, options?)` - An Immer update function. See Immer documentation. The following optional options can
+be provided:
+  - `notify` - When set to `false`, it won't trigger an UI render after the update
+- `field(value, options?)`
+  - `value` - Required. A value from your form, e.g. `field(form.name)`
+  - `options` - Optional. An object with the following optional properties:
+    - `mode` - `onBlur` or `onChange`. Defaults to `onChange`, which will trigger updates to the UI on any change. When set to `onBlur`, it will trigger updates to the UI when the field loses focus
+    - `transform` - A function to transform the value from the change event, before it is saved into the form
+    - `prepare` - A function to prepare the value from the form for the UI element
+
+### `<UseForm/>`
+A wrapper around the `useForm()` hook.
+
+### `useFormContext()`
+Returns the raw context for the form. It is an object with the following properties:
+- `register(fieldPaths, callback)` - Registers a listener on the given paths. Each path is an array, e.g.
+`['nestedObject', 'name']` would register the callback on `form.nestedObject.name`. It returns an unsubscribe function,
+which when called, will remove the callback subscription
+- `listen(callback)` - Registers a listener on the whole form. Whenever there is a change on the form, the callback will
+be called. Returns an unsubscribe function
+- `getForm()` - Returns the raw form data
+- `update(callback)` - An Immer update function. See Immer documentation
+- `trigger()` - Will trigger an UI re-render; any pending form changes will be used to update the UI components
+- `defaultOptions` - The default options that were passed into the `FormProvider` component
 
 ## Performance tips
 Performance in React mainly comes down to avoiding renders of large component trees. You want to focus updates and
