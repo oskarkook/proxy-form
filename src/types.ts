@@ -25,7 +25,8 @@ export type FormListener<TForm> = (props: {
 
 export interface FieldHelpers<TValue, TSource> {
   name: string;
-  value: TValue;
+  value?: TValue;
+  defaultValue?: TValue;
   onChange: (data: ChangeEvent | TSource) => void;
   onBlur: () => void;
 };
