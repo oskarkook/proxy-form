@@ -116,8 +116,8 @@ describe('ProviderContext', () => {
     const mapListener = jest.fn();
     const forEachListener = jest.fn();
 
-    context.register([['items', value.items.map]], mapListener);
-    context.register([['items', value.items.forEach]], forEachListener);
+    context.register([['items', 'map']], mapListener);
+    context.register([['items', 'forEach']], forEachListener);
 
     context.update(f => {
       f.items.push(4);
@@ -130,9 +130,9 @@ describe('ProviderContext', () => {
   it('updates any listeners that depend on array iterators', () => {
     const context = new ProviderContext({ items: [1, 2, 3] });
 
-    const listeners = Object.values(Object.getOwnPropertyDescriptors(Array.prototype)).filter(d => isFunction(d.value)).map(descriptor => {
+    const listeners = Object.entries(Object.getOwnPropertyDescriptors(Array.prototype)).filter(([n, d]) => isFunction(d.value)).map(([name, descriptor]) => {
       const listener = jest.fn();
-      context.register([['items', descriptor.value]], listener);
+      context.register([['items', name]], listener);
       expect(listener).toBeCalledTimes(1);
       return listener;
     });
@@ -144,7 +144,7 @@ describe('ProviderContext', () => {
       f.items[2] = 11;
     });
 
-    listeners.forEach((listener, i) => {
+    listeners.forEach((listener) => {
       // once on mount, once on update
       expect(listener).toBeCalledTimes(2);
     });
@@ -258,5 +258,17 @@ describe('ProviderContext', () => {
 
     expect(onNameUpdate).toHaveBeenCalledTimes(2);
     expect(onValueUpdate).toHaveBeenCalledTimes(2);
+  });
+
+  it('updates nested listeners', () => {
+    const context = new ProviderContext({ items: [{ name: 'test' }, {name: 'test2'}] });
+    const onUpdate = jest.fn();
+    context.register([['items', 0, 'name']], onUpdate);
+
+    context.update(f => {
+      f.items[0].name = 'new name';
+    });
+
+    expect(onUpdate).toHaveBeenCalledTimes(2);
   });
 });

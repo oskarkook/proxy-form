@@ -87,7 +87,7 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
           }
 
           update(form => {
-            setIn(form, fieldPath, newValue, () => {});
+            setIn(form, fieldPath, newValue, () => ({}));
           }, { notify: mode === 'onChange' });
         },
         onBlur: () => {

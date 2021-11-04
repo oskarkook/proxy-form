@@ -1,6 +1,6 @@
 import produce, { enablePatches, Patch, produceWithPatches } from 'immer';
 import { createContext } from 'react';
-import { FieldsMap, getIn, groupListeners, isFunction, isMap, isPlainObject, mkDefault } from './helpers';
+import { FieldsMap, getIn, groupListeners, isMap, isPlainObject, mkDefault } from './helpers';
 import { FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
 
 export interface ContextValue<TForm> {
@@ -143,7 +143,7 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
         if(isMap(registrations)) {
           const keys = registrations.keys();
           for(let key of keys) {
-            if(isFunction(key)) {
+            if(Array.prototype.hasOwnProperty(key)) {
               paths.push([...referencePath, key]);
             }
           }

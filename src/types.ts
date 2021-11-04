@@ -1,7 +1,7 @@
 import { Patch } from 'immer';
 
 // Generic
-export type FieldName = string | symbol | number | Function;
+export type FieldName = string | symbol | number;
 export type FieldPath = Array<FieldName>;
 
 export type ChangeEvent = {

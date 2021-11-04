@@ -54,7 +54,7 @@ export function isPlainObject(value: any): boolean {
 	return typeof Ctor == "function" && Function.toString.call(Ctor) === objectCtorString;
 }
 
-export function isFunction(value: any): boolean {
+export function isFunction(value: any): value is Function {
   return value instanceof Function || typeof value === 'function';
 }
 
@@ -74,8 +74,7 @@ export function createProxy<TForm>(identifier: symbol, form: TForm, prevPath: Fi
         const path = [...prevPath, prop];
         return createProxy(identifier, form, path, onAccess);
       } else if(isFunction(value)) {
-        // We use the value itself, so we can differentiate between array elements and actual functions on the array.
-        onAccess([...prevPath, value]);
+        onAccess([...prevPath, prop]);
         return value.bind(receiver);
       } else {
         onAccess([...prevPath, prop]);
@@ -122,7 +121,7 @@ export class FieldsMap<TValue> {
   private fields: Fields<TValue> = new Map();
 
   public get(path: FieldPath): Fields<TValue> | TValue | undefined {
-    return getIn(this.fields, path, (map, key) => map.get(key));
+    return getIn(this.fields, path, (map, key) => map.get(String(key)));
   }
 
   public has(path: FieldPath): boolean {
@@ -130,7 +129,7 @@ export class FieldsMap<TValue> {
   }
 
   public set(path: FieldPath, value: TValue): void {
-    setIn(this.fields, path, value, () => new Map(), (map, key) => map.get(key), (map, key, value) => map.set(key, value));
+    setIn(this.fields, path, value, () => new Map(), (map, key) => map.get(String(key)), (map, key, value) => map.set(String(key), value));
   }
 
   public delete(path: FieldPath): void {
