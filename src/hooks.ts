@@ -70,8 +70,7 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
       const mode = mkDefault('onChange', fieldOptions?.mode, formOptions?.mode);
       return {
         name: fieldPath.join('.'),
-        value: isControlled ? fieldValue as TValue : undefined,
-        defaultValue: !isControlled ? fieldValue as TValue : undefined,
+        value: fieldValue,
         onChange: (eventOrValue: ChangeEvent | TSource) => {
           let newValue: any = eventOrValue;
           if(eventOrValue instanceof Object && eventOrValue.target) {
