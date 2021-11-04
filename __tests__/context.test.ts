@@ -14,22 +14,14 @@ describe('ProviderContext', () => {
         f.name = 'new name';
       });
 
-      expect(onUpdate).toHaveBeenCalledTimes(2);
+      expect(onUpdate).toHaveBeenCalledTimes(1);
       unsubscribe();
       
       context.update(f => {
         f.name = 'another name';
       });
 
-      expect(onUpdate).toHaveBeenCalledTimes(2);
-    });
-
-    it('calls update function with form value on registration', () => {
-      const context = new ProviderContext({ name: 'test' });
-      const onUpdate = jest.fn();
-      context.register([], onUpdate);
       expect(onUpdate).toHaveBeenCalledTimes(1);
-      expect(onUpdate).toHaveBeenCalledWith({ name: 'test' });
     });
   });
 
@@ -72,16 +64,15 @@ describe('ProviderContext', () => {
       const context = new ProviderContext({ name: 'test' });
       const onUpdate = jest.fn();
       context.register([['name']], onUpdate);
-      expect(onUpdate).toHaveBeenCalledTimes(1);
 
       context.update(f => {
         f.name = 'new name';
       }, { notify: false });
 
-      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onUpdate).toHaveBeenCalledTimes(0);
 
       context.trigger();
-      expect(onUpdate).toHaveBeenCalledTimes(2);
+      expect(onUpdate).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -92,7 +83,7 @@ describe('ProviderContext', () => {
     context.update(f => {
       f.name = 'new name';
     });
-    expect(onUpdate).toHaveBeenCalledTimes(2);
+    expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onUpdate).toHaveBeenLastCalledWith({ name: 'new name' });
   })
 
@@ -101,13 +92,11 @@ describe('ProviderContext', () => {
     const onUpdate = jest.fn();
 
     context.register([['items', 0, 'name']], onUpdate);
-    expect(onUpdate).toBeCalledTimes(1);
     context.update(f => {
       f.items.splice(0, 1);
     });
 
-    // once on mount, once on update
-    expect(onUpdate).toBeCalledTimes(2);
+    expect(onUpdate).toBeCalledTimes(1);
   });
 
   it('updates basic array iterators like map and forEach', () => {
@@ -123,8 +112,8 @@ describe('ProviderContext', () => {
       f.items.push(4);
     });
 
-    expect(mapListener).toBeCalledTimes(2);
-    expect(forEachListener).toBeCalledTimes(2);
+    expect(mapListener).toBeCalledTimes(1);
+    expect(forEachListener).toBeCalledTimes(1);
   });
 
   it('updates any listeners that depend on array iterators', () => {
@@ -133,7 +122,6 @@ describe('ProviderContext', () => {
     const listeners = Object.entries(Object.getOwnPropertyDescriptors(Array.prototype)).filter(([n, d]) => isFunction(d.value)).map(([name, descriptor]) => {
       const listener = jest.fn();
       context.register([['items', name]], listener);
-      expect(listener).toBeCalledTimes(1);
       return listener;
     });
 
@@ -145,8 +133,7 @@ describe('ProviderContext', () => {
     });
 
     listeners.forEach((listener) => {
-      // once on mount, once on update
-      expect(listener).toBeCalledTimes(2);
+      expect(listener).toBeCalledTimes(1);
     });
   });
 
@@ -154,17 +141,16 @@ describe('ProviderContext', () => {
     const context = new ProviderContext({ items: [1, 2, 3] });
     const onUpdate = jest.fn();
     context.register([['items', 1]], onUpdate);
-    expect(onUpdate).toBeCalledTimes(1);
     context.update(f => {
       f.items[1] = 10;
     });
-    expect(onUpdate).toBeCalledTimes(2);
+    expect(onUpdate).toBeCalledTimes(1);
 
     // Should not update when another element is updated
     context.update(f => {
       f.items[2] = 11;
     })
-    expect(onUpdate).toBeCalledTimes(2);
+    expect(onUpdate).toBeCalledTimes(1);
   });
 
   it('calls global form listeners on update', () => {
@@ -237,7 +223,7 @@ describe('ProviderContext', () => {
     expect(onUpdate.mock.calls[2][0].patch.value).toBe('new name 2');
   });
 
-  it('will not call listeners that depend on fields that were not updated', () => {
+  it('does not call listeners that depend on fields that were not updated', () => {
     const context = new ProviderContext({ name: 'test', value: 'value' });
     const onNameUpdate = jest.fn();
     const onValueUpdate = jest.fn();
@@ -249,15 +235,15 @@ describe('ProviderContext', () => {
       f.name = 'new name';
     });
 
-    expect(onNameUpdate).toHaveBeenCalledTimes(2);
-    expect(onValueUpdate).toHaveBeenCalledTimes(1);
+    expect(onNameUpdate).toHaveBeenCalledTimes(1);
+    expect(onValueUpdate).toHaveBeenCalledTimes(0);
 
     context.update(f => {
       f.value = 'new value';
     });
 
-    expect(onNameUpdate).toHaveBeenCalledTimes(2);
-    expect(onValueUpdate).toHaveBeenCalledTimes(2);
+    expect(onNameUpdate).toHaveBeenCalledTimes(1);
+    expect(onValueUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('updates nested listeners', () => {
@@ -269,6 +255,6 @@ describe('ProviderContext', () => {
       f.items[0].name = 'new name';
     });
 
-    expect(onUpdate).toHaveBeenCalledTimes(2);
+    expect(onUpdate).toHaveBeenCalledTimes(1);
   });
 });

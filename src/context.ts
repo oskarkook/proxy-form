@@ -52,8 +52,6 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
       }
     });
 
-    onUpdate(this.form);
-
     return () => {
       fieldPaths.forEach(fieldPath => {
         const fieldListeners = this.registrations.get(fieldPath);
