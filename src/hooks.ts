@@ -7,9 +7,11 @@ export function useFormContext<TForm>(): ContextValue<TForm> {
   return useContext(FormContext as Context<ContextValue<TForm>>);
 }
 
+type TransformFn<TValue, TSource> = (data: TSource, prevValue: TValue) => TValue;
+type PrepareFn<TValue, TInput> = (value: TValue) => TInput;
 export interface FieldOptions<TValue, TSource, TInput> extends FormOptions {
-  transform?: (newValue: TSource, prevValue: TValue) => TValue;
-  prepare?: (value: TValue) => TInput;
+  transform?: TransformFn<TValue, TSource>;
+  prepare?: PrepareFn<TValue, TInput>;
 };
 
 export interface UseFormReturn<TForm> {
@@ -19,13 +21,12 @@ export interface UseFormReturn<TForm> {
     TValue,
     TSource = never,
     TInput = never,
-    TOptions extends FieldOptions<TValue, TSource, TInput> = {},
   >(
     value: TValue,
-    fieldOptions?: TOptions,
+    fieldOptions?: FieldOptions<TValue, TSource, TInput>,
   ) => {
     name: string;
-    value: TOptions['prepare'] extends (value: TValue) => TInput ? TInput : TValue;
+    value: TInput;
     onChange: (data: TSource) => void;
     onBlur: () => void;
   };
