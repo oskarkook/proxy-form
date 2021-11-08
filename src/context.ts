@@ -98,10 +98,11 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
       if(prevPatches.length === 0) return [form, allPatches];
       allPatches = allPatches.concat(prevPatches);
 
-      const [newForm, newPatches] = produceWithPatches(form, (form) => {
+      const [newForm, newPatches] = produceWithPatches(form, (draft) => {
         prevPatches.forEach(patch => {
           this.formListeners.forEach(listener => listener({
-            form: form as TForm,
+            form: draft as TForm,
+            original: form,
             patch,
             changed: (path) => this.changedFields.has(path),
           }));

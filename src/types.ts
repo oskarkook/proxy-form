@@ -18,6 +18,7 @@ export type UnsubscribeFn = () => void;
 export type RegistrationUpdater<TForm> = (form: TForm) => void;
 export type FormListener<TForm> = (props: {
   form: TForm,
+  original: TForm,
   patch: Patch,
   changed: (fieldPath: FieldPath) => boolean,
 }) => TForm | void;
