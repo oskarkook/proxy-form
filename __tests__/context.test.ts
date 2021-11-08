@@ -99,6 +99,17 @@ describe('ProviderContext', () => {
     expect(onUpdate).toBeCalledTimes(1);
   });
 
+  it('only runs trigger() once after an update', () => {
+    const context = new ProviderContext({ name: 'test' });
+    context.trigger = jest.fn();
+
+    context.update(f => {
+      f.name = 'new name';
+    });
+
+    expect(context.trigger).toBeCalledTimes(1);
+  });
+
   it('updates basic array iterators like map and forEach', () => {
     const value = { items: [1, 2, 3] };
     const context = new ProviderContext(value);
