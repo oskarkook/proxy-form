@@ -1,22 +1,35 @@
 import React, { Context, useContext, useEffect, useState } from 'react';
 import { ContextValue, FormContext } from './context';
 import { createProxy, getIn, mkDefault, setIn } from './helpers';
-import { ChangeEvent, FieldHelpers, FieldPath, FormOptions } from './types';
+import { FieldPath, FormOptions } from './types';
 
 export function useFormContext<TForm>(): ContextValue<TForm> {
   return useContext(FormContext as Context<ContextValue<TForm>>);
 }
 
+export interface FieldOptions<TValue, TSource, TInput> extends FormOptions {
+  transform?: (newValue: TSource, prevValue: TValue) => TValue;
+  prepare?: (value: TValue) => TInput;
+};
+
 export interface UseFormReturn<TForm> {
   form: TForm;
   update: ContextValue<TForm>['update'];
-  field: <TValue, TSource = TValue, TPrepared = TValue>(value: TValue, fieldOptions?: FieldOptions<TValue, TSource, TPrepared>) => FieldHelpers<TPrepared, TSource>;
+  field: <
+    TValue,
+    TSource = TValue,
+    TInput = TValue,
+    TOptions extends FieldOptions<TValue, TSource, TInput> = {},
+  >(
+    value: TValue,
+    fieldOptions?: TOptions,
+  ) => {
+    name: string;
+    value: TOptions['prepare'] extends (value: TValue) => TInput ? TInput : TValue;
+    onChange: (data: TSource) => void;
+    onBlur: () => void;
+  };
 }
-
-export interface FieldOptions<TValue, TSource, TPrepared> extends FormOptions {
-  transform?: (newValue: TSource, prevValue: TValue) => TValue;
-  prepare?: (value: TValue) => TPrepared;
-};
 
 export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> {
   const { register, getForm, update, trigger, defaultOptions } = useFormContext<TForm>();
@@ -39,7 +52,7 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
   return {
     form: proxy as TForm,
     update,
-    field<TValue, TSource = TValue, TPrepared = TValue>(value: TValue, fieldOptions?: FieldOptions<TValue, TSource, TPrepared>) {
+    field<TValue, TSource = TValue, TInput = TValue>(value: TValue, fieldOptions?: FieldOptions<TValue, TSource, TInput>) {
       // Check if user is trying to access a proxy. If so, return the actual object.
       if(value && typeof value === 'object') {
         const proxyInfo = (value as any)[proxyIdentifier]; // This is a "special field" we have in our proxy implementation.
@@ -62,18 +75,14 @@ export function useForm<TForm>(formOptions?: FormOptions): UseFormReturn<TForm> 
         throw new Error('Incorrect field access.');
       }
 
-      let preparedValue: TPrepared = fieldValue;
-      if(fieldOptions?.prepare) {
-        preparedValue = fieldOptions.prepare(fieldValue);
-      }
-
       const mode = mkDefault('onChange', fieldOptions?.mode, formOptions?.mode);
       return {
         name: fieldPath.join('.'),
-        value: preparedValue,
-        onChange: (eventOrValue: ChangeEvent | TSource) => {
+        value: fieldOptions?.prepare ? fieldOptions.prepare(fieldValue) : fieldValue,
+        onChange: (data: TSource) => {
+          const eventOrValue: any = data;
           let newValue: any = eventOrValue;
-          if(eventOrValue instanceof Object && eventOrValue.target) {
+          if(eventOrValue instanceof Object && 'target' in eventOrValue) {
             const target = eventOrValue.target;
 
             if(target.type === 'checkbox') {
