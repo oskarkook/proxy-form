@@ -1,7 +1,7 @@
 import produce, { enablePatches, Patch, produceWithPatches } from 'immer';
 import { createContext } from 'react';
-import { FieldsMap, getIn, groupListeners, isMap, isPlainObject, mkDefault } from './helpers';
-import { FieldName, FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
+import { FieldsMap, getIn, isPlainObject, mkDefault } from './helpers';
+import { FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
 
 export interface ContextValue<TForm> {
   register: (fieldPaths: FieldPath[], onUpdate: RegistrationUpdater<TForm>) => UnsubscribeFn;
@@ -23,7 +23,7 @@ export const FormContext = createContext<ContextValue<unknown>>({
 enablePatches();
 export class ProviderContext<TForm> implements ContextValue<TForm> {
   private form: Readonly<TForm>;
-  private changedFields: FieldsMap<Map<FieldName, any>> = new FieldsMap();
+  private changedFields: FieldsMap<boolean> = new FieldsMap();
   private registrations: FieldsMap<RegistrationUpdater<TForm>[]> = new FieldsMap();
   private pendingPatches: readonly Patch[] = [];
   private formListeners: readonly FormListener<TForm>[];
@@ -86,7 +86,7 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
       // Update changed fields. Note we run this only on the initial update as we only track fields that were changed by user.
       initialUpdate[1].forEach(patch => {
         if(patch.op === 'add' || patch.op === 'replace') {
-          this.changedFields.set(patch.path, new Map());
+          this.changedFields.set(patch.path, true);
         } else if(patch.op === 'remove') {
           this.changedFields.delete(patch.path);
         }
@@ -122,37 +122,33 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
   }
 
   trigger() {
-    const paths: FieldPath[] = [];
+    const listeners = new Set<RegistrationUpdater<TForm>>();
+    const addPath = (key: FieldPath) => {
+      this.registrations.get(key)?.forEach(listener => listeners.add(listener));
+    }
 
     this.pendingPatches.forEach(patch => {
       const referencePath = patch.path.slice(0, -1);
       const reference: any = getIn(this.form, referencePath);
-      
       const value = reference[patch.path[patch.path.length - 1]];
 
       if(Array.isArray(value) || isPlainObject(value)) {
         // If an array or object is changed, we need to notify all the listeners deeper in the dependency tree. When we
         // provide referencePath, all listeners anywhere downstream will be notified.
-        paths.push(referencePath);
+        this.registrations.getAllNested(referencePath)?.forEach(l => l.forEach(r => listeners.add(r)));
       } else if(Array.isArray(reference)) {
+        addPath(patch.path);
         // If reference is an array, we need to find all the functions that depend on this array. These can be for
         // example functions like `map`, `filter` or `forEach`.
-        paths.push(patch.path);
-        const registrations = this.registrations.get(referencePath);
-        if(isMap(registrations)) {
-          const keys = registrations.keys();
-          for(let key of keys) {
-            if(Array.prototype.hasOwnProperty(key)) {
-              paths.push([...referencePath, key]);
-            }
+        this.registrations.keys(referencePath).forEach(key => {
+          if(Array.prototype.hasOwnProperty(key)) {
+            addPath([...referencePath, key]);
           }
-        }
+        });
       } else {
-        paths.push(patch.path);
+        addPath(patch.path);
       }
     });
-
-    const listeners = groupListeners(this.registrations, paths);
 
     listeners.forEach(listener => {
       listener(this.form);

@@ -116,20 +116,61 @@ export function createProxy<TForm>(identifier: symbol, form: TForm, prevPath: Fi
   });
 }
 
-type Fields<TValue> = Map<FieldName, Fields<TValue> | TValue>;
+const selfRef = Symbol();
+type Fields<TValue> = Map<FieldName, Fields<TValue>>;
 export class FieldsMap<TValue> {
   private fields: Fields<TValue> = new Map();
 
-  public get(path: FieldPath): Fields<TValue> | TValue | undefined {
-    return getIn(this.fields, path, (map, key) => map.get(String(key)));
+  /**
+   * Returns data stored at the given path
+   */
+  public get(path: FieldPath): TValue | undefined {
+    path = [...path, selfRef];
+    return getIn(this.fields, path, this.mapGetter);
+  }
+
+  /**
+   * Returns all data related to this path, even nested values
+   */
+  public getAllNested(path: FieldPath, maxDepth?: number): TValue[] {
+    const map: typeof this.fields = getIn(this.fields, path, this.mapGetter);
+    if(!map) return [];
+
+    const result: TValue[] = [];
+    function explore(map: Fields<TValue>, depth: number) {
+      Array.from(map.keys()).forEach(key => {
+        const value = map.get(key);
+        if(!value) return;
+
+        if(key === selfRef) {
+          result.push(value as any);
+        } else if(maxDepth === undefined || depth < maxDepth) {
+          explore(value, depth + 1);
+        }
+      });
+    }
+
+    explore(map, 0);
+    return result;
+  }
+
+  /**
+   * Returns existing path keys under the given path
+   */
+  public keys(path: FieldPath): FieldName[] {
+    const map: typeof this.fields = getIn(this.fields, path, this.mapGetter);
+    if(!map) return [];
+
+    return Array.from(map.keys()).filter(key => key !== selfRef);
+  }
+
+  public set(path: FieldPath, value: TValue): void {
+    path = [...path, selfRef];
+    setIn(this.fields, path, value, () => new Map(), this.mapGetter, this.mapSetter);
   }
 
   public has(path: FieldPath): boolean {
     return this.get(path) !== undefined;
-  }
-
-  public set(path: FieldPath, value: TValue): void {
-    setIn(this.fields, path, value, () => new Map(), (map, key) => map.get(String(key)), (map, key, value) => map.set(String(key), value));
   }
 
   public delete(path: FieldPath): void {
@@ -138,22 +179,19 @@ export class FieldsMap<TValue> {
       reference.delete(path[path.length - 1]);
     }
   }
-}
 
-
-export function groupListeners<TForm>(registrations: FieldsMap<RegistrationUpdater<TForm>[]>, paths: FieldPath[], set: Set<RegistrationUpdater<TForm>> = new Set()): Set<RegistrationUpdater<TForm>> {
-  paths.forEach(path => {
-    const listeners = registrations.get(path);
-    if(!listeners) return undefined;
-
-    if(Array.isArray(listeners)) {
-      listeners.forEach(l => set.add(l));
-    } else {
-      // An object is referenced. Anything that listens deeper than this needs to be updated.
-      const nestedPaths = Array.from(listeners.keys()).map(name => [...path, name]);
-      groupListeners(registrations, nestedPaths, set);
+  private mapGetter: AccessorFn<any> = (map, key) => {
+    if(typeof key !== 'symbol') {
+      key = String(key);
     }
-  });
+    return map.get(key);
+  }
 
-  return set;
+  private mapSetter: SetterFn<any> = (map, key, value) => {
+    if(typeof key !== 'symbol') {
+      key = String(key);
+    }
+    map.set(key, value);
+  }
+
 }
