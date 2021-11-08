@@ -17,8 +17,8 @@ export interface UseFormReturn<TForm> {
   update: ContextValue<TForm>['update'];
   field: <
     TValue,
-    TSource = TValue,
-    TInput = TValue,
+    TSource = never,
+    TInput = never,
     TOptions extends FieldOptions<TValue, TSource, TInput> = {},
   >(
     value: TValue,
