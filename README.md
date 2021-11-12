@@ -283,6 +283,24 @@ libraries I've tried:
   - Performance with arrays can be difficult to optimize
   - Updating the form externally can become difficult if you have many inter-dependent fields
 
+### Alternative solutions
+The usefulness of the functions that this library provides can be arguable, so it is important to compare it to various
+alternatives.
+
+**Other form libraries.** Discussed in the previous section.
+
+**Redux.** Redux offers a more systematic approach to how data is managed and changed. It is a valid alternative when
+you need a stricter approach. You'd need a helper library for forms, though.
+
+**State machines.** Same as Redux: it is a more systematic approach and can be a preferred option in some cases, however
+you will need helper libraries to make your life easier.
+
+**Passing values through the component tree manually.** This has the following drawbacks:
+- Difficult to optimize when you have nested data
+- Have to have your own wrapper for field helpers (`field()` in this library)
+- Need to religiously use `React.memo()` to actually make React not re-render when the props stay the same
+- Have to implement your own update lifecycle
+
 ### Why `update()` instead of using the `set()` handler of the Proxy?
 The `set()` handler theoretically could offer an even more convenient usage of the state object, as you could directly
 manipulate the form data. These are the reasons why the `update()` handler is prefered:
@@ -292,6 +310,7 @@ be changed for some reason. With `set()`, you would end up triggering many chang
 `update()` it ends up being a single change.
 - It makes updates explicit. You can't accidentally set some value, but instead you have to essentially declare your
 updates, which makes it easier to reason about the data flow.
+
 
 ## Useful information
 ### Form update cycle
