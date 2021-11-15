@@ -118,7 +118,11 @@ export function createProxy<TForm>(identifier: symbol, form: TForm, prevPath: Fi
 const selfRef = '$$proxy-form$self';
 export type Fields<TValue> = {[key: FieldName]: Fields<TValue>};
 export class FieldsMap<TValue> {
-  public fields: Fields<TValue> = {};
+  public fields: Fields<TValue>;
+
+  constructor(fields?: Fields<TValue>) {
+    this.fields = fields || {};
+  }
 
   /**
    * Returns data stored at the given path

@@ -1,18 +1,25 @@
 import React, { useRef } from 'react';
-import { ContextValue, FormContext, ProviderContext } from './context';
+import { ChangedFields, ContextValue, FormContext, ProviderContext } from './context';
 import { FormListener, FormOptions } from './types';
 
 export interface FormProviderProps<TForm> {
   defaultValues: TForm;
   defaultOptions?: FormOptions;
+  initialChangedFields?: ChangedFields<TForm>;
   listeners?: FormListener<TForm>[];
   children?: React.ReactNode;
 };
-export const FormProvider = <TForm extends Record<string, any>>({ defaultValues, defaultOptions, listeners = [], children }: FormProviderProps<TForm>): React.ReactElement => {
+export const FormProvider = <TForm extends Record<string, any>>({
+  defaultValues,
+  defaultOptions,
+  initialChangedFields,
+  listeners = [],
+  children
+}: FormProviderProps<TForm>): React.ReactElement => {
   const context = useRef<ContextValue<TForm>>();
 
   if(context.current === undefined) {
-    const providerContext = new ProviderContext<TForm>(defaultValues, listeners, defaultOptions);
+    const providerContext = new ProviderContext<TForm>(defaultValues, initialChangedFields, listeners, defaultOptions);
 
     context.current = {
       getForm: providerContext.getForm.bind(providerContext),

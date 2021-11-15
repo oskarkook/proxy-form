@@ -26,7 +26,7 @@ export const FormContext = createContext<ContextValue<unknown>>({
 enablePatches();
 export class ProviderContext<TForm> implements ContextValue<TForm> {
   private form: Readonly<TForm>;
-  private changedFields: FieldsMap<boolean> = new FieldsMap();
+  private changedFields: FieldsMap<boolean>;
   private registrations: FieldsMap<RegistrationUpdater<TForm>[]> = new FieldsMap();
   private pendingPatches: readonly Patch[] = [];
   private formListeners: readonly FormListener<TForm>[];
@@ -34,10 +34,12 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
 
   constructor(
     defaultValues: TForm,
+    initialChangedFields?: ChangedFields<TForm>,
     listeners?: FormListener<TForm>[],
     options?: FormOptions,
   ) {
     this.form = Object.freeze(defaultValues);
+    this.changedFields = new FieldsMap(initialChangedFields);
     this.formListeners = Object.freeze(listeners || []);
     this.defaultOptions = Object.freeze(options);
   }
