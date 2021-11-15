@@ -7,7 +7,10 @@ export function mkDefault<TValue>(defaultValue: TValue, ...values: Array<TValue 
 }
 
 type AccessorFn<T> = (obj: any, key: FieldName) => T;
-const objGetter: AccessorFn<any> = (obj, key: any) => obj[key];
+const objGetter: AccessorFn<any> = (obj, key: any) => {
+  if(!obj.hasOwnProperty(key)) return undefined;
+  return obj[key];
+};
 export function getIn<T = unknown>(obj: any, path: FieldPath, accessor: AccessorFn<T> = objGetter): T | undefined {
   return path.reduce(
     (result, key) => {
@@ -56,10 +59,6 @@ export function isPlainObject(value: any): boolean {
 
 export function isFunction(value: any): value is Function {
   return value instanceof Function || typeof value === 'function';
-}
-
-export function isMap(value: any): value is Map<any, any> {
-  return value instanceof Map;
 }
 
 export function createProxy<TForm>(identifier: symbol, form: TForm, prevPath: FieldPath, onAccess: (path: FieldPath) => void): any {
@@ -116,30 +115,30 @@ export function createProxy<TForm>(identifier: symbol, form: TForm, prevPath: Fi
   });
 }
 
-const selfRef = Symbol();
-type Fields<TValue> = Map<FieldName, Fields<TValue>>;
+const selfRef = '$$proxy-form$self';
+type Fields<TValue> = {[key: FieldName]: Fields<TValue>};
 export class FieldsMap<TValue> {
-  private fields: Fields<TValue> = new Map();
+  private fields: Fields<TValue> = {};
 
   /**
    * Returns data stored at the given path
    */
   public get(path: FieldPath): TValue | undefined {
     path = [...path, selfRef];
-    return getIn(this.fields, path, this.mapGetter);
+    return getIn(this.fields, path);
   }
 
   /**
    * Returns all data related to this path, even nested values
    */
   public getAllNested(path: FieldPath, maxDepth?: number): TValue[] {
-    const map: typeof this.fields = getIn(this.fields, path, this.mapGetter);
+    const map: Fields<TValue> | undefined = getIn(this.fields, path);
     if(!map) return [];
 
     const result: TValue[] = [];
     function explore(map: Fields<TValue>, depth: number) {
-      Array.from(map.keys()).forEach(key => {
-        const value = map.get(key);
+      Object.getOwnPropertyNames(map).forEach(key => {
+        const value = map[key];
         if(!value) return;
 
         if(key === selfRef) {
@@ -158,15 +157,15 @@ export class FieldsMap<TValue> {
    * Returns existing path keys under the given path
    */
   public keys(path: FieldPath): FieldName[] {
-    const map: typeof this.fields = getIn(this.fields, path, this.mapGetter);
+    const map: Fields<TValue> | undefined = getIn(this.fields, path);
     if(!map) return [];
 
-    return Array.from(map.keys()).filter(key => key !== selfRef);
+    return Object.getOwnPropertyNames(map).filter(key => key !== selfRef);
   }
 
   public set(path: FieldPath, value: TValue): void {
     path = [...path, selfRef];
-    setIn(this.fields, path, value, () => new Map(), this.mapGetter, this.mapSetter);
+    setIn(this.fields, path, value, () => ({}));
   }
 
   public has(path: FieldPath): boolean {
@@ -174,24 +173,9 @@ export class FieldsMap<TValue> {
   }
 
   public delete(path: FieldPath): void {
-    const reference = this.get(path.slice(0, -1));
-    if(isMap(reference)) {
-      reference.delete(path[path.length - 1]);
+    const reference: Fields<TValue> | undefined = getIn(this.fields, path.slice(0, -1));
+    if(reference !== undefined) {
+      delete reference[path[path.length - 1]];
     }
   }
-
-  private mapGetter: AccessorFn<any> = (map, key) => {
-    if(typeof key !== 'symbol') {
-      key = String(key);
-    }
-    return map.get(key);
-  }
-
-  private mapSetter: SetterFn<any> = (map, key, value) => {
-    if(typeof key !== 'symbol') {
-      key = String(key);
-    }
-    map.set(key, value);
-  }
-
 }
