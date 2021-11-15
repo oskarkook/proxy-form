@@ -203,6 +203,9 @@ Props:
 - `defaultValues` - Required. Provides default (initial) values for the form
 - `defaultOptions` - Optional. An object with the following optional properties:
   - `mode` - `onBlur` or `onChange`. Defaults to `onChange`, which will trigger updates to the UI on any change. When set to `onBlur`, it will trigger updates to the UI when the field loses focus
+- `initialChangedFields` - Optional. Used to restore form state from a previous session, should be an object from
+`useFormContext().getChangedFields()`
+- `listeners` - Optional. Global listeners that will be called on every form change
 
 ### `useForm()`
 Hook, which provides some convenience functions and tracks dependencies.
@@ -231,6 +234,8 @@ which when called, will remove the callback subscription
 - `listen(callback)` - Registers a listener on the whole form. Whenever there is a change on the form, the callback will
 be called. Returns an unsubscribe function
 - `getForm()` - Returns the raw form data
+- `getChangedFields()` - Returns an object with data about changed fields. Mainly to be used in conjunction with
+`FormProvider.initialChangedFields` (see above)
 - `update(callback)` - An Immer update function. See Immer documentation
 - `trigger()` - Will trigger an UI re-render; any pending form changes will be used to update the UI components
 - `defaultOptions` - The default options that were passed into the `FormProvider` component
