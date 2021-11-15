@@ -133,6 +133,7 @@ describe('ProviderContext', () => {
     const listeners = Object.entries(Object.getOwnPropertyDescriptors(Array.prototype)).filter(([n, d]) => isFunction(d.value)).map(([name, descriptor]) => {
       const listener = jest.fn();
       context.register([['items', name]], listener);
+      listener.mockName(name);
       return listener;
     });
 
