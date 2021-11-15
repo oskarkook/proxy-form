@@ -1,3 +1,4 @@
 export * from './formProvider';
 export * from './hooks';
-export type { ContextValue } from './context';
+export type { Fields } from './helpers';
+export type { ContextValue, ChangedFields } from './context';

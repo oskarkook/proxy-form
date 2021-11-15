@@ -1,21 +1,24 @@
 import produce, { enablePatches, Patch, produceWithPatches } from 'immer';
 import { createContext } from 'react';
-import { FieldsMap, getIn, isPlainObject, mkDefault } from './helpers';
+import { Fields, FieldsMap, getIn, isPlainObject, mkDefault } from './helpers';
 import { FieldPath, FormListener, FormOptions, RegistrationUpdater, UnsubscribeFn } from './types';
 
+export type ChangedFields<TForm> = Fields<boolean>; // TODO
 export interface ContextValue<TForm> {
+  getForm: () => TForm;
+  getChangedFields: () => ChangedFields<TForm>;
   register: (fieldPaths: FieldPath[], onUpdate: RegistrationUpdater<TForm>) => UnsubscribeFn;
   listen: (updateFn: FormListener<TForm>) => UnsubscribeFn;
-  getForm: () => TForm;
   update: (updateFn: (form: TForm) => TForm | void, options?: {validate?: boolean, notify?: boolean}) => void;
   trigger: () => void;
   defaultOptions?: FormOptions;
 };
 
 export const FormContext = createContext<ContextValue<unknown>>({
+  getForm: () => undefined,
+  getChangedFields: () => ({}),
   register: () => () => {},
   listen: () => () => {},
-  getForm: () => undefined,
   update: () => {},
   trigger: () => {},
 });
@@ -37,6 +40,14 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
     this.form = Object.freeze(defaultValues);
     this.formListeners = Object.freeze(listeners || []);
     this.defaultOptions = Object.freeze(options);
+  }
+
+  getForm() {
+    return this.form;
+  }
+
+  getChangedFields() {
+    return this.changedFields.fields;
   }
 
   register(fieldPaths: FieldPath[], onUpdate: (form: TForm) => void) {
@@ -73,10 +84,6 @@ export class ProviderContext<TForm> implements ContextValue<TForm> {
         listeners.splice(idx, 1);
       });
     };
-  }
-
-  getForm() {
-    return this.form;
   }
 
   update(updateFn: (form: TForm) => TForm | void, options?: {validate?: boolean, notify?: boolean}) {

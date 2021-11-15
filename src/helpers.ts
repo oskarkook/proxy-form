@@ -1,4 +1,4 @@
-import { FieldName, FieldPath, RegistrationUpdater } from './types';
+import { FieldName, FieldPath } from './types';
 
 export function mkDefault<TValue>(defaultValue: TValue, ...values: Array<TValue | undefined>) {
   const result = values.find(v => v !== undefined);
@@ -116,9 +116,9 @@ export function createProxy<TForm>(identifier: symbol, form: TForm, prevPath: Fi
 }
 
 const selfRef = '$$proxy-form$self';
-type Fields<TValue> = {[key: FieldName]: Fields<TValue>};
+export type Fields<TValue> = {[key: FieldName]: Fields<TValue>};
 export class FieldsMap<TValue> {
-  private fields: Fields<TValue> = {};
+  public fields: Fields<TValue> = {};
 
   /**
    * Returns data stored at the given path

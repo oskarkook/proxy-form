@@ -15,9 +15,10 @@ export const FormProvider = <TForm extends Record<string, any>>({ defaultValues,
     const providerContext = new ProviderContext<TForm>(defaultValues, listeners, defaultOptions);
 
     context.current = {
+      getForm: providerContext.getForm.bind(providerContext),
+      getChangedFields: providerContext.getChangedFields.bind(providerContext),
       register: providerContext.register.bind(providerContext),
       listen: providerContext.listen.bind(providerContext),
-      getForm: providerContext.getForm.bind(providerContext),
       update: providerContext.update.bind(providerContext),
       trigger: providerContext.trigger.bind(providerContext),
     };
