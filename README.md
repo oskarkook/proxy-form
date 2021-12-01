@@ -294,6 +294,11 @@ alternatives.
 
 **Other form libraries.** Discussed in the previous section.
 
+[**Overmind.**](https://overmindjs.org/) This can be considered a superior library to `proxy-form`, as it provides close
+to the same ergonomics with better primitives. Overmind is a state library first and there is honestly a very small
+sliver of use-cases where you don't need the state primitives, but do need the ergonocims and usage patterns of
+`proxy-form`. **Consider using Overmind.js over this library!**
+
 **Redux.** Redux offers a more systematic approach to how data is managed and changed. It is a valid alternative when
 you need a stricter approach. You'd need a helper library for forms, though.
 
